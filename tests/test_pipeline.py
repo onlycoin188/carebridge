@@ -96,6 +96,15 @@ class TestRulesAndPipeline(unittest.TestCase):
         hits = rules.scan("Lola fell in the bathroom")
         self.assertEqual(hits[0]["type"], "낙상")
 
+    def test_invented_tokens_removed(self):
+        res = {"summary_ko": "[이름1] 어르신이 식사하심. 보호자 [전화1]",
+               "observations": [{"content_ko": "[이름2] 할머니 식사", "evidence_original": "[이름2] ăn"}]}
+        fixes = pipeline.drop_unknown_tokens(res, "bà ăn ít, gọi số [전화1]")
+        self.assertEqual(res["summary_ko"], "어르신이 식사하심. 보호자 [전화1]")
+        self.assertEqual(res["observations"][0]["content_ko"], "할머니 식사")
+        self.assertEqual(res["observations"][0]["evidence_original"], "[이름2] ăn")
+        self.assertTrue(fixes)
+
     def test_limits(self):
         with self.assertRaises(ValueError):
             pipeline.analyze("")

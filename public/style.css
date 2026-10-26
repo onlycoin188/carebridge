@@ -215,8 +215,8 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--b
 @media (prefers-reduced-motion: reduce) { .skeleton i, .steps p.on::before { animation: none; } }
 
 .verdict { display: flex; gap: 18px; align-items: stretch; }
-.v-level { flex: 0 0 104px; border-radius: 14px; display: grid; place-content: center; text-align: center; padding: 14px 0; gap: 2px; }
-.v-word { font-size: 30px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.1; }
+.v-level { flex: 0 0 120px; border-radius: 14px; display: grid; place-content: center; text-align: center; padding: 14px 0; gap: 2px; }
+.v-word { white-space: nowrap; font-size: 24px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.1; }
 .v-sub { font-size: 12px; font-weight: 700; opacity: .85; }
 .lv-긴급 { background: var(--urgent-soft); color: var(--urgent); }
 .lv-주의 { background: var(--caution-soft); color: var(--caution); }
@@ -304,7 +304,7 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--b
 .stat b { font-size: 26px; font-weight: 800; color: var(--ink); letter-spacing: -0.03em; }
 .review-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .rec { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
-.rec summary { display: grid; grid-template-columns: 64px 1fr auto; gap: 16px; align-items: center; padding: 15px 20px; cursor: pointer; list-style: none; }
+.rec summary { display: grid; grid-template-columns: 84px 1fr auto; gap: 16px; align-items: center; padding: 15px 20px; cursor: pointer; list-style: none; }
 .rec summary::-webkit-details-marker { display: none; }
 .rec .lv { text-align: center; font-weight: 800; border-radius: 9px; padding: 5px 0; font-size: 14px; }
 .rec .when { font-size: 12.5px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
@@ -337,16 +337,25 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--b
 .principles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
 .principles li { background: var(--brand-soft); border-radius: 14px; padding: 16px; font-size: 13.5px; color: var(--ink-2); line-height: 1.55; }
 .principles b { display: block; color: var(--brand); font-size: 15px; margin-bottom: 4px; }
+.limits p { margin: 0 0 8px; } .limits p:last-child { margin: 0; }
 .limits { margin: 0; padding: 16px 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; color: var(--ink-2); font-size: 14.5px; line-height: 1.7; }
 
 .foot { max-width: 1320px; margin: 0 auto; padding: 22px 28px 40px; font-size: 13px; color: var(--ink-2); }
 .foot p { margin: 2px 0; }
 
+.usecases { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.usecases > div { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; box-shadow: var(--shadow); }
+.usecases b { font-size: 15px; }
+.usecases p { margin: 6px 0 0; font-size: 13.5px; color: var(--muted); line-height: 1.6; }
+.nots { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.nots li { position: relative; padding: 12px 14px 12px 38px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; font-size: 14px; color: var(--ink-2); }
+.nots li::before { content: ""; position: absolute; left: 14px; top: 50%; width: 14px; height: 14px; margin-top: -7px; border-radius: 50%; border: 2px solid var(--urgent); background: linear-gradient(45deg, transparent 44%, var(--urgent) 44%, var(--urgent) 56%, transparent 56%); }
+
 /* ---------- 반응형 ---------- */
 @media (max-width: 1080px) {
   .pipeline { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .pipeline li + li::before { display: none; }
-  .principles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .principles, .nots { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 960px) {
@@ -374,8 +383,8 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--b
   .glance { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .samples { grid-template-columns: 1fr 1fr; }
   .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .metrics, .principles, .pipeline { grid-template-columns: 1fr; }
-  .rec summary { grid-template-columns: 52px 1fr; }
+  .metrics, .principles, .pipeline, .usecases, .nots { grid-template-columns: 1fr; }
+  .rec summary { grid-template-columns: 76px 1fr; }
   .rec .when { grid-column: 2; text-align: left; }
   .actionbar .btn-save { max-width: none; flex-basis: 100%; }
 }

@@ -4,6 +4,9 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const STORE_KEY = "carebridge.reviews.v1";
 const LEVEL_ORDER = { "긴급": 0, "주의": 1, "관찰": 2, "일반": 3 };
+// 내부 단계 → 화면 표시 (진단·위험 판정이 아니라 보고 우선순위로 보여 준다)
+const LV_LABEL = { "긴급": "즉시 보고", "주의": "오늘 확인", "관찰": "관찰", "일반": "일반 기록" };
+const lvl = (k) => LV_LABEL[k] || k;
 
 let current = null; // 마지막 분석 결과
 let currentInput = null;
@@ -228,21 +231,21 @@ function render(data) {
   const lv = ck.final_urgency;
   const vl = $(".v-level", out);
   vl.classList.add(`lv-${lv}`);
-  $(".v-word", out).textContent = lv;
+  $(".v-word", out).textContent = lvl(lv);
   $(".v-summary", out).textContent = r.summary_ko || "요약 없음";
   const code = currentInput.context.recipient_code;
   $(".v-meta", out).textContent = [code && `어르신 ${code}`, currentInput.context.shift && `${currentInput.context.shift} 근무`, `${data.meta.language_name} 메모`,
-    ck.urgency_raised_by_rule && `AI는 '${ck.ai_urgency}'로 판단 → 규칙 교차검증으로 상향`].filter(Boolean).join(" / ");
+    ck.urgency_raised_by_rule && `AI는 '${lvl(ck.ai_urgency)}'로 정리 → 규칙 교차검증으로 올림`].filter(Boolean).join(" / ");
   if (data.meta.mode === "demo") {
     const n = document.createElement("p");
     n.className = "demo-note";
-    n.textContent = "데모 모드입니다. AI 키가 연결되지 않아 규칙 사전으로 위험 표현만 찾았습니다. 번역·요약·되묻기는 AI 연결 후 동작합니다.";
+    n.textContent = "데모 모드입니다. AI 키가 연결되지 않아 규칙 사전으로 주의 표현만 찾았습니다. 번역·요약·되묻기는 AI 연결 후 동작합니다.";
     $(".verdict", out).after(n);
   }
 
   const ev = ck.evidence;
   const glance = [
-    ["risks", "위험 신호", r.risk_flags.length, r.risk_flags.length ? "hot" : "ok"],
+    ["risks", "보고 필요 변화", r.risk_flags.length, r.risk_flags.length ? "hot" : "ok"],
     ["obs", "관찰 내용", r.observations.length, ""],
     ["acts", "권장 조치", r.recommended_actions.length, ""],
     ["obs", "근거 원문 확인", ev.total ? `${ev.exact + ev.partial}/${ev.total}` : "-", ev.missing ? "hot" : "ok"],
@@ -265,11 +268,11 @@ function render(data) {
 
   const risks = $(".risks", out);
   const rs = r.risk_flags.map((f, i) => ({ f, i })).sort((a, b) => LEVEL_ORDER[a.f.level] - LEVEL_ORDER[b.f.level]);
-  if (!rs.length) risks.innerHTML = `<li class="none">AI가 찾은 위험 신호가 없습니다.</li>`;
+  if (!rs.length) risks.innerHTML = `<li class="none">보고가 필요한 변화를 찾지 못했습니다.</li>`;
   rs.forEach(({ f, i }) => {
     const li = document.createElement("li");
     li.className = "item";
-    li.innerHTML = `<div class="row1"><span class="pill lv-${esc(f.level)}">${esc(f.level)}</span><b>${esc(f.type)}</b></div>
+    li.innerHTML = `<div class="row1"><span class="pill lv-${esc(f.level)}">${esc(lvl(f.level))}</span><b>${esc(f.type)}</b></div>
       <div class="txt">${esc(f.reason_ko)}</div>${evLine(f)}`;
     bindEvidence(li, `r${i}`);
     risks.appendChild(li);
@@ -349,7 +352,7 @@ function saveRecord(status) {
     code: currentInput.context.recipient_code || "", shift: currentInput.context.shift || "",
     lang: current.meta.language_name, urgency: current.checks.final_urgency,
     summary: current.result.summary_ko, draft: $(".draft").value,
-    risks: current.result.risk_flags.map((f) => `${f.type}(${f.level})`),
+    risks: current.result.risk_flags.map((f) => `${f.type}(${lvl(f.level)})`),
     actions_done: $$(".acts input").filter((x) => x.checked).length, actions_total: $$(".acts input").length,
     ai: current.meta.mode === "ai" ? current.meta.model : "demo",
   });
@@ -367,20 +370,20 @@ function renderReviews() {
   $("#review-empty").hidden = list.length > 0;
   const cnt = (k) => list.filter((x) => x.urgency === k).length;
   $("#review-stats").innerHTML = list.length ? `
-    <div class="stat"><b style="color:var(--urgent)">${cnt("긴급")}</b>긴급</div>
-    <div class="stat"><b style="color:var(--caution)">${cnt("주의")}</b>주의</div>
-    <div class="stat"><b style="color:var(--calm)">${cnt("일반")}</b>일반</div>
+    <div class="stat"><b style="color:var(--urgent)">${cnt("긴급")}</b>즉시 보고</div>
+    <div class="stat"><b style="color:var(--caution)">${cnt("주의")}</b>오늘 확인</div>
+    <div class="stat"><b style="color:var(--calm)">${cnt("일반")}</b>일반 기록</div>
     <div class="stat"><b>${list.filter((x) => x.status === "보류").length}</b>보류</div>` : "";
   list.forEach((x) => {
     const li = document.createElement("li");
     const d = new Date(x.at);
     li.innerHTML = `<details class="rec"><summary>
-        <span class="lv lv-${esc(x.urgency)}">${esc(x.urgency)}</span>
+        <span class="lv lv-${esc(x.urgency)}">${esc(lvl(x.urgency))}</span>
         <span><b>${esc(x.code || "코드 없음")}</b> <span class="muted small">${esc(x.lang)}${x.shift ? " · " + esc(x.shift) : ""}</span><span class="st ${x.status === "보류" ? "hold" : ""}">${esc(x.status)}</span><br>${esc(x.summary)}</span>
         <span class="when">${d.toLocaleDateString("ko-KR")} ${d.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}</span>
       </summary><div class="body">
         <pre>${esc(x.draft)}</pre>
-        <p class="muted small">위험 신호: ${esc(x.risks.join(", ") || "없음")} · 조치 ${x.actions_done}/${x.actions_total} 완료 · AI: ${esc(x.ai)}</p>
+        <p class="muted small">보고 필요 변화: ${esc(x.risks.join(", ") || "없음")} · 조치 ${x.actions_done}/${x.actions_total} 완료 · AI: ${esc(x.ai)}</p>
         <button class="ghost btn-del" type="button">이 기록 지우기</button>
       </div></details>`;
     $(".btn-del", li).onclick = () => { saveReviews(memoryReviews.filter((y) => y.id !== x.id)); updateCount(); renderReviews(); };
@@ -395,8 +398,8 @@ $("#btn-clear").onclick = () => {
   setTimeout(() => { b.textContent = "모두 지우기"; delete b.dataset.confirm; }, 3000);
 };
 $("#btn-csv").onclick = () => {
-  const rows = [["저장시각", "상태", "어르신코드", "근무조", "언어", "긴급도", "요약", "위험신호", "기록지초안", "AI"]];
-  memoryReviews.forEach((x) => rows.push([x.at, x.status, x.code, x.shift, x.lang, x.urgency, x.summary, x.risks.join(" / "), x.draft, x.ai]));
+  const rows = [["저장시각", "상태", "어르신코드", "근무조", "언어", "보고우선순위", "요약", "보고필요변화", "인수인계초안", "AI"]];
+  memoryReviews.forEach((x) => rows.push([x.at, x.status, x.code, x.shift, x.lang, lvl(x.urgency), x.summary, x.risks.join(" / "), x.draft, x.ai]));
   const csv = "﻿" + rows.map((r) => r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\r\n");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));

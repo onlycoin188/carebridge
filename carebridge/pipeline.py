@@ -18,6 +18,34 @@ from .prompts import (CATEGORIES, DUES, LEVELS, OUTPUT_SCHEMA, OWNERS, REPLY_SYS
                       SYSTEM_PROMPT, URGENCY, user_prompt)
 
 MAX_MEMO_CHARS = 3000
+_TOKEN = re.compile(r"\[(이름|전화|주민번호|주소|이메일|생년월일)\d+\]")
+
+
+def drop_unknown_tokens(result: dict, masked_text: str) -> list[str]:
+    """원문에 없는 [이름N] 같은 토큰을 AI가 지어내면 지운다. 원문 근거 구절(evidence_original)은 건드리지 않는다."""
+    known = {m.group(0) for m in _TOKEN.finditer(masked_text)}
+    found: set[str] = set()
+
+    def fix(v):
+        if isinstance(v, str):
+            def sub(m):
+                if m.group(0) in known:
+                    return m.group(0)
+                found.add(m.group(0))
+                return "어르신" if m.group(1) == "이름" else "(확인 필요)"
+            out = _TOKEN.sub(sub, v)
+            return re.sub(r"어르신\s*(어르신|할머니|할아버지)", r"\1", out)
+        if isinstance(v, list):
+            return [fix(x) for x in v]
+        if isinstance(v, dict):
+            return {k: (x if k == "evidence_original" else fix(x)) for k, x in v.items()}
+        return v
+
+    for k in list(result):
+        result[k] = fix(result[k])
+    return [f"원문에 없는 토큰 제거: {', '.join(sorted(found))}"] if found else []
+
+
 _RANK = {"일반": 0, "관찰": 0, "주의": 1, "긴급": 2}
 _URG_BY_RANK = {0: "일반", 1: "주의", 2: "긴급"}
 
@@ -213,6 +241,7 @@ def analyze(memo: str, context: dict | None = None, extra_names: list[str] | Non
             fixes.append("1회 재시도 후 성공")
         result, f2 = normalize(raw)
         fixes += f2
+        fixes += drop_unknown_tokens(result, masked.text)
 
     # ④ 근거 대조
     for item in result["observations"] + result["risk_flags"]:

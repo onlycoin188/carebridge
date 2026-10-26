@@ -9,6 +9,15 @@
   "memo": "Hôm nay bà Lan ăn rất ít, bữa trưa chỉ ăn khoảng 3 thìa cháo rồi không chịu ăn nữa. Uống nước cũng ít. Buổi tối bà nhổ thuốc ra hai lần, tôi không biết có nên cho uống lại không. Con gái bà gọi số 010-4821-3307 hỏi tình hình."
  },
  {
+  "id": "ko_qa",
+  "lang": "ko",
+  "lang_name": "한국어",
+  "title": "식사 절반 · 무릎 불편 · 복약 미확인",
+  "shift": "오후",
+  "recipient_code": "B-12",
+  "memo": "점심을 절반 드셨고 무릎이 불편하다고 말씀하셨습니다. 복약 여부는 확인하지 못했습니다."
+ },
+ {
   "id": "ne_01",
   "lang": "ne",
   "lang_name": "네팔어",
