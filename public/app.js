@@ -30,16 +30,52 @@ async function copy(text) {
 }
 
 /* ---------- 탭 ---------- */
+const TABS = ["analyze", "review", "about"];
 function showTab(name) {
-  const isA = name === "analyze";
-  $("#tab-analyze").setAttribute("aria-selected", String(isA));
-  $("#tab-review").setAttribute("aria-selected", String(!isA));
-  $("#view-analyze").hidden = !isA;
-  $("#view-review").hidden = isA;
-  if (!isA) renderReviews();
+  TABS.forEach((t) => {
+    $(`#tab-${t}`).setAttribute("aria-selected", String(t === name));
+    $(`#view-${t}`).hidden = t !== name;
+  });
+  if (name === "review") renderReviews();
+  window.scrollTo({ top: 0 });
 }
-$("#tab-analyze").onclick = () => showTab("analyze");
-$("#tab-review").onclick = () => showTab("review");
+TABS.forEach((t) => { $(`#tab-${t}`).onclick = () => showTab(t); });
+$$("[data-goto]").forEach((b) => { b.onclick = () => showTab(b.dataset.goto); });
+
+/* ---------- 진행 단계 (1 입력 → 2 분석 → 3 검토) ---------- */
+function setStep(n, allDone = false) {
+  $$("#stepper li").forEach((li) => {
+    const k = Number(li.dataset.step);
+    li.className = allDone || k < n ? "done" : k === n ? "on" : "";
+  });
+}
+
+/* ---------- 첫 방문 안내 ---------- */
+const INTRO_KEY = "carebridge.intro.hidden";
+try { if (localStorage.getItem(INTRO_KEY)) $("#intro").hidden = true; } catch { /* 저장소 없음 */ }
+$("#btn-intro-close").onclick = () => {
+  $("#intro").hidden = true;
+  try { localStorage.setItem(INTRO_KEY, "1"); } catch { /* 저장소 없음 */ }
+};
+$("#btn-how").onclick = () => showTab("about");
+
+let SAMPLES = [];
+function loadSample(s) {
+  $("#memo").value = s.memo; $("#shift").value = s.shift || ""; $("#rcode").value = s.recipient_code || "";
+  $$("#samples button").forEach((b) => b.classList.toggle("sel", b.dataset.id === s.id));
+  updateChars();
+}
+async function tryDemo() {
+  showTab("analyze");
+  if (!$("#source-view").hidden) $("#btn-edit").click();
+  const s = SAMPLES.find((x) => x.id === "vi_02") || SAMPLES[0];
+  if (!s) return;
+  loadSample(s);
+  $(".split").scrollIntoView({ behavior: "smooth", block: "start" });
+  analyze();
+}
+$("#btn-try").onclick = tryDemo;
+$$("[data-try]").forEach((b) => { b.onclick = tryDemo; });
 
 /* ---------- 초기화 ---------- */
 async function init() {
@@ -47,20 +83,18 @@ async function init() {
   try {
     const h = await (await fetch("/api/health")).json();
     const st = $("#ai-status");
-    if (h.mode === "ai") { st.textContent = `AI 연결됨 · ${h.model}`; st.className = "status ai"; }
-    else { st.textContent = "데모 모드 · AI 미연결"; st.className = "status demo"; st.title = "AI 키가 없어 규칙 기반으로만 동작합니다"; }
-  } catch { $("#ai-status").textContent = "서버 연결 안 됨"; }
+    if (h.mode === "ai") { $("span", st).textContent = `AI 연결됨 · ${h.model}`; st.className = "status ai"; }
+    else { $("span", st).textContent = "데모 모드 · AI 미연결"; st.className = "status demo"; st.title = "AI 키가 없어 규칙 기반으로만 동작합니다"; }
+  } catch { $("#ai-status span").textContent = "서버 연결 안 됨"; }
   try {
-    const samples = await (await fetch("/samples.json")).json();
+    SAMPLES = await (await fetch("/samples.json")).json();
     const box = $("#samples");
-    samples.forEach((s) => {
+    SAMPLES.forEach((s) => {
       const b = document.createElement("button");
       b.type = "button";
+      b.dataset.id = s.id;
       b.innerHTML = `<b>${esc(s.lang_name)}</b>${esc(s.title)}`;
-      b.onclick = () => {
-        $("#memo").value = s.memo; $("#shift").value = s.shift || ""; $("#rcode").value = s.recipient_code || "";
-        updateChars(); $("#memo").focus();
-      };
+      b.onclick = () => { loadSample(s); $("#memo").focus(); };
       box.appendChild(b);
     });
   } catch { /* 샘플 없어도 동작 */ }
@@ -82,6 +116,8 @@ async function analyze() {
   const btn = $("#btn-analyze");
   btn.disabled = true; btn.textContent = "정리하는 중…";
   $("#empty").hidden = true; $("#out").hidden = true; $("#loading").hidden = false;
+  setStep(2);
+  $("#intro").hidden = true; // 작업을 시작하면 안내를 접어 결과가 위로 오게
   const steps = $$("#loading .steps p");
   steps.forEach((p) => p.className = "");
   let i = 0; steps[0].className = "on";
@@ -99,6 +135,7 @@ async function analyze() {
     render(data);
   } catch (e) {
     $("#loading").hidden = true; $("#empty").hidden = false;
+    setStep(1);
     err.textContent = e.message || "분석에 실패했습니다. 잠시 뒤 다시 시도해 주세요."; err.hidden = false;
   } finally {
     clearInterval(timer);
@@ -108,6 +145,7 @@ async function analyze() {
 
 $("#btn-edit").onclick = () => {
   $("#input-area").hidden = false; $("#source-view").hidden = true; $("#btn-edit").hidden = true;
+  $("#out").hidden = true; $("#empty").hidden = false; setStep(1);
   $("#memo").focus();
 };
 
@@ -202,6 +240,20 @@ function render(data) {
     $(".verdict", out).after(n);
   }
 
+  const ev = ck.evidence;
+  const glance = [
+    ["risks", "위험 신호", r.risk_flags.length, r.risk_flags.length ? "hot" : "ok"],
+    ["obs", "관찰 내용", r.observations.length, ""],
+    ["acts", "권장 조치", r.recommended_actions.length, ""],
+    ["obs", "근거 원문 확인", ev.total ? `${ev.exact + ev.partial}/${ev.total}` : "-", ev.missing ? "hot" : "ok"],
+  ];
+  $(".glance", out).innerHTML = glance.map(([k, label, v, cls]) =>
+    `<a href="#" data-jump="${k}" class="${cls}"><b>${esc(v)}</b>${esc(label)}</a>`).join("");
+  $$(".glance a", out).forEach((a) => { a.onclick = (e) => { e.preventDefault(); $(`[data-k="${a.dataset.jump}"]`, out).scrollIntoView({ behavior: "smooth", block: "start" }); }; });
+  if (r.risk_flags.length) $(".n-risks", out).textContent = r.risk_flags.length;
+  if (r.observations.length) $(".n-obs", out).textContent = r.observations.length;
+  if (r.recommended_actions.length) $(".n-acts", out).textContent = r.recommended_actions.length;
+
   const alerts = $(".alerts", out);
   ck.cross_check_alerts.forEach((a, i) => {
     const d = document.createElement("div");
@@ -270,6 +322,7 @@ function render(data) {
   $(".btn-copy", out).onclick = () => copy($(".draft", out).value);
 
   $("#loading").hidden = true; out.hidden = false;
+  setStep(3);
   out.scrollIntoView({ block: "nearest" });
 }
 
@@ -302,6 +355,7 @@ function saveRecord(status) {
   });
   saveReviews(list);
   updateCount();
+  setStep(3, true);
   toast(status === "승인" ? "검토 완료로 저장했습니다" : "보류로 저장했습니다");
 }
 function updateCount() { $("#review-count").textContent = memoryReviews.length; }
