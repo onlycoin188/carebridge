@@ -1,0 +1,6 @@
+tests/
+eval/
+docs/
+Dockerfile
+render.yaml
+.env

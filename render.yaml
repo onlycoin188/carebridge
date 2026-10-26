@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: carebridge
+    runtime: python
+    plan: free
+    buildCommand: "echo no-deps"
+    startCommand: "python server.py"
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: RATE_LIMIT_PER_HOUR
+        value: "40"

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>케어브릿지</title>
+<meta name="description" content="외국인 요양보호사의 다국어 관찰메모를 한국어 기록 초안으로 정리하는 담당자용 도구">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Noto+Sans:wght@400;500&family=Noto+Sans+Devanagari:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230E5E5B'/%3E%3Cpath d='M7 20c4-8 14-8 18 0' stroke='%23FBE58A' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7"/><path d="M7 20c4-8 14-8 18 0"/></svg>
+    <div>
+      <h1>케어브릿지</h1>
+      <p class="tag">다국어 관찰메모를 한국어 기록 초안으로</p>
+    </div>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="tab-analyze" aria-selected="true" aria-controls="view-analyze">메모 정리</button>
+    <button role="tab" id="tab-review" aria-selected="false" aria-controls="view-review">검토함 <span id="review-count" class="count">0</span></button>
+  </nav>
+  <span id="ai-status" class="status" title="AI 연결 상태">확인 중</span>
+</header>
+
+<main>
+  <!-- 메모 정리 -->
+  <section id="view-analyze" role="tabpanel" aria-labelledby="tab-analyze" class="split">
+    <div class="pane source">
+      <div class="pane-head">
+        <h2>원문 메모</h2>
+        <button id="btn-edit" class="link" hidden>새 메모 입력</button>
+      </div>
+
+      <div id="input-area">
+        <p class="hint">요양보호사가 쓴 메모를 그대로 붙여 넣으세요. 어떤 언어든 괜찮습니다. 이름·전화번호는 AI로 보내기 전에 자동으로 가립니다.</p>
+        <div class="samples" id="samples" aria-label="예시 메모"></div>
+        <label class="sr" for="memo">관찰메모</label>
+        <textarea id="memo" rows="9" maxlength="3000" placeholder="예) Hôm nay bà ăn rất ít, bữa trưa chỉ ăn 3 thìa cháo…"></textarea>
+        <div class="meta-row">
+          <label>근무조
+            <select id="shift"><option value="">선택 안 함</option><option>오전</option><option>오후</option><option>저녁</option><option>야간</option></select>
+          </label>
+          <label>어르신 코드
+            <input id="rcode" maxlength="12" placeholder="A-07">
+          </label>
+          <span id="charcount" class="muted">0 / 3000</span>
+        </div>
+        <details class="names">
+          <summary>가릴 이름 등록 (선택)</summary>
+          <p class="hint">외국 이름처럼 자동으로 찾기 어려운 이름을 쉼표로 적으면 함께 가립니다. 이 목록은 저장되지 않습니다.</p>
+          <input id="names" placeholder="Nguyen Thi Hoa, 김순자">
+        </details>
+        <button id="btn-analyze" class="primary">AI로 정리하기</button>
+        <p id="error" class="error" role="alert" hidden></p>
+      </div>
+
+      <div id="source-view" hidden>
+        <div class="legend">
+          <span><i class="lg-pii"></i>가린 개인정보</span>
+          <span><i class="lg-rule"></i>위험 표현(규칙)</span>
+          <span><i class="lg-ev"></i>선택한 항목의 근거</span>
+        </div>
+        <div id="source-text" class="memo-text" lang=""></div>
+        <dl id="source-facts" class="facts"></dl>
+      </div>
+    </div>
+
+    <div class="pane result" aria-live="polite">
+      <div id="empty" class="empty">
+        <svg viewBox="0 0 120 80" aria-hidden="true"><rect x="6" y="10" width="48" height="60" rx="6"/><rect x="66" y="10" width="48" height="60" rx="6"/><path d="M54 40h12"/><path d="M14 26h30M14 36h24M14 46h30M74 26h22M74 36h30M74 46h18"/></svg>
+        <p>왼쪽에 메모를 넣고 <b>AI로 정리하기</b>를 누르면, 위험 신호·관찰 내용·기록지 초안이 여기에 나옵니다.</p>
+        <p class="muted">항목에 마우스를 올리면 그 판단의 근거가 된 원문 구절이 왼쪽에 표시됩니다.</p>
+      </div>
+      <div id="loading" class="loading" hidden>
+        <div class="steps">
+          <p data-s="0">개인정보 가리는 중</p>
+          <p data-s="1">번역하고 구조화하는 중</p>
+          <p data-s="2">근거 구절을 원문과 대조하는 중</p>
+        </div>
+      </div>
+      <div id="out" hidden></div>
+    </div>
+  </section>
+
+  <!-- 검토함 -->
+  <section id="view-review" role="tabpanel" aria-labelledby="tab-review" hidden>
+    <div class="review-head">
+      <div>
+        <h2>검토함</h2>
+        <p class="hint">승인한 기록은 이 브라우저에만 저장됩니다. 서버에는 메모가 남지 않습니다.</p>
+      </div>
+      <div class="review-actions">
+        <button id="btn-csv" class="ghost">CSV로 내보내기</button>
+        <button id="btn-clear" class="ghost danger">모두 지우기</button>
+      </div>
+    </div>
+    <div id="review-stats" class="stats"></div>
+    <ol id="review-list" class="review-list"></ol>
+    <p id="review-empty" class="empty-small">아직 승인한 기록이 없습니다. 메모를 정리한 뒤 <b>검토 완료 · 저장</b>을 누르면 여기에 쌓입니다.</p>
+  </section>
+</main>
+
+<footer class="foot">
+  <p>AI가 만든 초안입니다. 진단이 아니며, 최종 판단과 기록은 담당자가 확인해 주세요.</p>
+  <p class="muted">2026 AI 라이프 솔루션 챌린지 출품작 · 합성 데이터로 시연</p>
+</footer>
+
+<template id="tpl-result">
+  <div class="verdict">
+    <div class="v-level"><span class="v-word"></span><span class="v-sub">긴급도</span></div>
+    <div class="v-body">
+      <p class="v-summary"></p>
+      <p class="v-meta muted"></p>
+    </div>
+  </div>
+  <div class="alerts"></div>
+  <section class="blk" data-k="risks"><h3>위험 신호</h3><ul class="risks"></ul></section>
+  <section class="blk" data-k="obs"><h3>관찰 내용</h3><ul class="obs"></ul></section>
+  <section class="blk" data-k="acts"><h3>권장 조치</h3><ul class="acts"></ul></section>
+  <section class="blk" data-k="draft">
+    <h3>기록지 초안 <span class="muted small">특이사항란에 붙여 넣을 수 있게 고쳐 쓰세요</span></h3>
+    <textarea class="draft" rows="6"></textarea>
+  </section>
+  <section class="blk" data-k="ask">
+    <h3>작성자에게 되묻기</h3>
+    <ul class="asks"></ul>
+    <div class="reply">
+      <label class="small muted" for="reply-ko">직접 쓴 메시지를 작성자 언어로 번역</label>
+      <div class="reply-row">
+        <input id="reply-ko" placeholder="예) 넘어진 시간과 장소를 다시 알려 주세요.">
+        <button class="ghost btn-reply">번역</button>
+      </div>
+      <div class="reply-out" hidden></div>
+    </div>
+  </section>
+  <section class="blk" data-k="missing"><h3>메모에 없는 정보</h3><ul class="missing"></ul></section>
+  <section class="blk" data-k="terms"><h3>용어 표준화</h3><ul class="terms"></ul></section>
+  <details class="blk translation"><summary>한국어 전체 번역 보기</summary><p class="tr"></p></details>
+  <div class="actionbar">
+    <button class="primary btn-save">검토 완료 · 저장</button>
+    <button class="ghost btn-hold">보류로 저장</button>
+    <button class="ghost btn-copy">초안 복사</button>
+  </div>
+</template>
+
+<script src="/app.js"></script>
+</body>
+</html>

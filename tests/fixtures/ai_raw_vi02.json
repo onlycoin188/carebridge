@@ -1,0 +1,13 @@
+{"detected_language":"vi","translation_ko":"오늘 [이름1] 할머니는 식사를 아주 적게 하셨습니다. 점심에 죽을 3숟가락 정도만 드시고 더 드시지 않았습니다. 물도 적게 드셨습니다. 저녁에 할머니가 약을 두 번 뱉으셨는데, 다시 드려야 할지 모르겠습니다. 따님이 [전화1]로 전화해 상태를 물었습니다.",
+"summary_ko":"점심 섭취 극히 저조(죽 3숟가락)와 수분 섭취 감소, 저녁 약을 2회 뱉음 — 재투약 여부 판단 필요.",
+"observations":[{"category":"식사·수분","content_ko":"점심 죽 약 3숟가락 섭취 후 거부하심","evidence_original":"bữa trưa chỉ ăn khoảng 3 thìa cháo rồi không chịu ăn nữa","certainty":"확실"},
+{"category":"식사·수분","content_ko":"수분 섭취 적음","evidence_original":"Uống nước cũng ít","certainty":"확실"},
+{"category":"투약","content_ko":"저녁 약을 2회 뱉으심","evidence_original":"Buổi tối bà nhổ thuốc ra hai lần","certainty":"확실"},
+{"category":"기타","content_ko":"보호자(딸)가 전화로 상태 문의","evidence_original":"Con gái bà gọi hỏi tình hình","certainty":"확실"}],
+"risk_flags":[{"type":"식사·수분 저하","level":"주의","reason_ko":"점심 섭취량이 매우 적고 수분 섭취도 줄어 탈수 위험","evidence_original":"bà [이름1] ăn rất ít"}],
+"urgency":"주의",
+"recommended_actions":[{"action_ko":"저녁 투약 여부를 투약기록과 대조하고 재투약 여부 결정","owner":"간호(조무)사","due":"즉시"},{"action_ko":"오늘부터 섭취량·배설량 기록","owner":"요양보호사","due":"오늘 안"},{"action_ko":"보호자에게 식사·투약 상황 공유","owner":"사회복지사","due":"오늘 안"}],
+"missing_info":["뱉은 약의 종류와 이름","평소 식사량","배뇨 횟수"],
+"followup_questions":[{"question_ko":"뱉은 약은 어떤 약이었나요? 약 봉투를 보여 줄 수 있나요?","question_native":"Bà nhổ thuốc gì? Bạn cho tôi xem túi thuốc được không?"},{"question_ko":"오늘 소변은 몇 번 보셨나요?","question_native":"Hôm nay bà đi tiểu mấy lần?"}],
+"terms":[{"original":"nhổ thuốc","standard_ko":"투약 거부(약을 뱉음)"},{"original":"cháo","standard_ko":"죽식"}],
+"record_draft_ko":"- 점심 죽식 약 3숟가락 섭취 후 거부, 수분 섭취 저조\n- 저녁 투약 시 약을 2회 뱉으심 → 간호사에게 재투약 여부 확인 요청\n- 보호자(딸) 전화 문의 있음"}
