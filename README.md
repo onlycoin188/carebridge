@@ -38,7 +38,8 @@ python server.py                 # http://localhost:7860
 |---|---|
 | `GEMINI_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | 하나만 있으면 자동 선택 |
 | `LLM_PROVIDER` | `gemini` · `openai` · `anthropic` · `mock` 강제 지정 |
-| `LLM_MODEL` | 기본값: gemini-2.5-flash / gpt-4.1-mini / claude-sonnet-5-5 |
+| `LLM_MODEL` | 기본값: gemini-3.5-flash-lite / gpt-4.1-mini / claude-sonnet-5-5 |
+| `LLM_TIMEOUT` | AI 응답 대기 시간(초, 기본 45) |
 | `RATE_LIMIT_PER_HOUR` | IP당 시간당 요청 수 (기본 40, 키 비용 보호) |
 
 ## 배포 (심사용 테스트 URL)

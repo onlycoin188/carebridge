@@ -15,7 +15,7 @@ import urllib.error
 import urllib.request
 
 DEFAULT_MODELS = {
-    "gemini": "gemini-2.5-flash",
+    "gemini": "gemini-3.5-flash-lite",
     "openai": "gpt-4.1-mini",
     "anthropic": "claude-sonnet-5-5",
 }
@@ -41,17 +41,28 @@ def resolve_provider() -> tuple[str, str]:
     return prov, model
 
 
-def _post(url: str, payload: dict, headers: dict, timeout: float = 60) -> dict:
+TIMEOUT = float(os.environ.get("LLM_TIMEOUT", "45"))
+RETRY_CODES = {429, 500, 502, 503, 504}  # 과부하·일시 오류는 잠깐 쉬었다가 다시 시도
+
+
+def _post(url: str, payload: dict, headers: dict, timeout: float = TIMEOUT, attempts: int = 3) -> dict:
     data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json", **headers}, method="POST")
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8", "replace")[:500]
-        raise LLMError(f"AI 서버 응답 오류 {e.code}: {body}") from e
-    except urllib.error.URLError as e:
-        raise LLMError(f"AI 서버에 연결하지 못했습니다: {e.reason}") from e
+    for i in range(attempts):
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", "replace")[:500]
+            if e.code in RETRY_CODES and i < attempts - 1:
+                time.sleep(1.5 * (i + 1))
+                continue
+            raise LLMError(f"AI 서버 응답 오류 {e.code}: {body}") from e
+        except urllib.error.URLError as e:
+            raise LLMError(f"AI 서버에 연결하지 못했습니다: {e.reason}") from e
+        except (TimeoutError, OSError) as e:  # 응답 대기 시간 초과 등 (URLError로 감싸지지 않음)
+            raise LLMError(f"AI 서버 응답이 {timeout:.0f}초 안에 오지 않았습니다: {e}") from e
+    raise LLMError("AI 서버 재시도 횟수를 넘었습니다")
 
 
 def extract_json(text: str) -> dict:
