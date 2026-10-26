@@ -49,7 +49,7 @@ LLM_PROVIDER=mock python eval/run_eval.py   # 규칙만 기준선
 1. ~~로컬에서 실제 AI 키로 실행~~ (완료) → 샘플 9개 눈으로 확인, 프롬프트·스키마 문제 있으면 수정
 2. ~~`python eval/run_eval.py` 실행~~ (완료, 보고서 수치 기입함) → 결과를 보고서의 노란 칸에 기입
    (위험 재현율·정밀도, 긴급도 일치, 근거 확인율, 처리시간 중앙값, 모델명)
-3. ~~GitHub 저장소 생성·푸시~~ (github.com/onlycoin188/carebridge, 비공개) → Vercel 배포(Framework: Other, 환경변수 GEMINI_API_KEY) → 테스트 URL 확인
+3. ~~GitHub 푸시·Vercel 배포~~ (완료) 테스트 URL: https://carebridge-liart-sigma.vercel.app (보고서에 기입함)
 4. 보고서 노란 칸: 테스트 URL, 참여인력(개인/팀) 확정. 아이디어 번호는 목록 순서상 "13번"으로 적음(공식 번호 확인 필요)
 5. 데모 영상 녹화 — `docs/record_demo.js`로 화면 녹화(약 80초, 무음) 가능. 내레이션 입히기는 사용자
 6. 제출 메일 발송
